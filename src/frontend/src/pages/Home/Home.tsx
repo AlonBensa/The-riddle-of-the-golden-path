@@ -10,22 +10,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Navbar from '../../components/Navbar';
 import PlanesAmountDialog from '../../dialogs/PlanesAmount';
 import AddCoordinatesDialog from '../../dialogs/AddCoordinates';
-
-interface Plane {
-  latitude: number;
-  longitude: number;
-  heading: number;
-  callsign: string;
-  altitude: number;
-  speed: number;
-}
-
-interface DroneDeparture {
-  latitude: number;
-  longitude: number;
-  radius: number;
-  speed: number;
-}
+import { Plane, DroneDeparture, NavbarOptions } from '../../types';
 
 type PlaneState = [unknown, string, unknown, unknown, unknown, number, number, number, unknown, number, unknown, unknown, number];
 
@@ -37,12 +22,6 @@ type CoordinatesFormData = DroneDeparture
 
 type FormData = Partial<PlanesAmountFormData> | Partial<CoordinatesFormData>;
 
-export enum NavbarOptions {
-  ChangePlanesAmount,
-  AddCoordinates,
-  RetrievePastOperations,
-}
-
 interface PlaneMarkersProps {
   planes: Plane[];
   drones: DroneDeparture[];
@@ -51,7 +30,7 @@ interface PlaneMarkersProps {
 const PlaneAndDronesLauncherMarkers = ({ planes, drones }: PlaneMarkersProps) => {
   const createPlaneIcon = (heading: number) => {
     const iconMarkup = renderToStaticMarkup(
-      <Flight style={{ transform: `rotate(${heading}deg)`, color: 'black' }} />
+      <Flight style={{ transform: `rotate(${heading}deg)` }} />
     );
     return L.divIcon({
       html: iconMarkup,
@@ -62,7 +41,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones }: PlaneMarkersProps) =>
 
   const createRocketIcon = () => {
     const iconMarkup = renderToStaticMarkup(
-      <RocketLaunch style={{ fontSize: '32px', color: 'red' }} />
+      <RocketLaunch style={{ fontSize: '32px' }} />
     );
     return L.divIcon({
       html: iconMarkup,
@@ -147,7 +126,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchPlaneData();
-    const intervalId = setInterval(fetchPlaneData, 30000);
+    const intervalId = setInterval(fetchPlaneData, 3000000);
 
     return () => clearInterval(intervalId);
   }, [planesAmount]);

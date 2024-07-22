@@ -2,7 +2,7 @@ import React from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import { Typography, Button, Box } from '@mui/material';
-import { NavbarOptions } from '../pages/Home/Home';
+import { NavbarOptions } from '../types';
 
 interface NavbarProps {
   onNavbarOptionSelected: (option: NavbarOptions) => void;
