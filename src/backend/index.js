@@ -1,10 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const planesApi = require('./planesApi');
-const databaseApi = require('./databaseApi');
+const cors = require('cors'); // Step 2: Import cors
+const planesApi = require('./entrypoints/planesApi');
+const databaseApi = require('./entrypoints/databaseApi');
 require('dotenv').config();
 
 const app = express();
+app.use(cors()); // Step 3: Use cors middleware
 app.use(bodyParser.json());
 
 app.use('/api/planes', planesApi);

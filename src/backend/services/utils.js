@@ -12,16 +12,16 @@ function calculateDistance(latitude1, longitude1, latitude2, longitude2) {
         Math.sin(deltaLongitudeRadians / 2) * Math.sin(deltaLongitudeRadians / 2);
 
     const centralAngle = 2 * Math.atan2(Math.sqrt(haversineNumerator), Math.sqrt(1 - haversineNumerator));
-    return earthRadiusKm * centralAngle * 1000; // Distance in meters
+    return earthRadiusKm * centralAngle * 1000;
 }
   
-function calculateVectorClosureTime(hostile, friendly, hostileSpeed) {
-    const dx = friendly.lon - hostile.lon;
-    const dy = friendly.lat - hostile.lat;
+function calculateVectorClosureTime(hostile, friendly) {
+    const dx = friendly.longitude - hostile.longitude;
+    const dy = friendly.latitude - hostile.latitude;
     const distance = Math.sqrt(dx * dx + dy * dy);
   
     const relativeSpeed = Math.sqrt(
-      Math.pow(friendly.velocity * Math.cos(friendly.heading) - hostileSpeed, 2) +
+      Math.pow(friendly.velocity * Math.cos(friendly.heading) - hostile.velocity, 2) +
       Math.pow(friendly.velocity * Math.sin(friendly.heading), 2)
     );
   

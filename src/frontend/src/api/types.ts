@@ -6,10 +6,10 @@ export interface Plane {
     last_contact: number;
     longitude: number;
     latitude: number;
-    baro_altitude: number;
+    altitude: number;
     on_ground: boolean;
     velocity: number;
-    true_track: number;
+    heading: number;
     vertical_rate: number;
     sensors: number[] | null;
     geo_altitude: number;
@@ -17,16 +17,23 @@ export interface Plane {
     spi: boolean;
     position_source: number;
 }
-  
-export interface ClosestAircraftRequest {
-    lat: number;
-    lon: number;
+
+export interface DroneDeparture {
+    latitude: number;
+    longitude: number;
     radius: number;
+    speed: number;
+}
+
+export interface ClosestAircraftRequest {
+    dronesDeparture: DroneDeparture[];
+    planesAmount?: number;
 }
   
 export interface ClosestAircraftResponse {
-    closestPlane: Plane | null;
-    minDistance: number;
+    closestPlanes: (Plane | null)[];
+    minDistances: (number | null)[];
+    messages: (string | null)[];
 }
   
 export interface ClosureTimeRequest {
@@ -38,30 +45,33 @@ export interface ClosureTimeResponse {
     closureTime: number;
 }
   
-export interface EvaluateThreatRequest {
-    lat: number;
-    lon: number;
-    speed: number;
-    radius: number;
+export interface EvaluateThreatRequest extends ClosestAircraftRequest {}
+
+export interface EvaluateThreatResponse {
+    closestPlanes: Plane[];
+    minDistances: number[];
+    messages: string[];
+    closureTimes: number[];
+    vectorClosureTimes: number[];
 }
   
 export interface VectorClosureTimeRequest {
     hostile: {
-        lat: number;
-        lon: number;
+        latitude: number;
+        longitude: number;
+        velocity: number;
     };
     friendly: {
-        lat: number;
-        lon: number;
+        latitude: number;
+        longitude: number;
         velocity: number;
         heading: number;
     };
-    hostileSpeed: number;
 }
 
 export interface Operation {
-    lat: number;
-    lon: number;
+    latitude: number;
+    longitude: number;
     speed: number;
     radius: number;
     closestPlane: any;
@@ -73,4 +83,11 @@ export interface SaveOperationResponse {
   
 export interface FetchSavedOperationsResponse {
     operations: Operation[];
+}
+
+export enum NavbarOptions {
+    ChangePlanesAmount,
+    AddCoordinates,
+    RetrievePastOperations,
+    SaveCurrentThreats,
 }
