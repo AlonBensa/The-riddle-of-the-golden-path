@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import axios from 'axios';
 import { Flight } from '@mui/icons-material';
 import { RocketLaunch } from '@mui/icons-material';
 import { Box } from '@mui/material';
@@ -10,48 +9,32 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Navbar from '../../components/Navbar';
 import PlanesAmountDialog from '../../dialogs/PlanesAmount';
 import AddCoordinatesDialog from '../../dialogs/AddCoordinates';
+import { Plane, NavbarOptions, DroneDeparture } from '../../api/types';
+import { useEvaluateThreatMutation } from '../../api/planes';
+import { useSaveOperationMutation, useFetchSavedOperationsQuery } from '../../api/database';
 
-interface Plane {
-  latitude: number;
-  longitude: number;
-  heading: number;
-  callsign: string;
-  altitude: number;
-  speed: number;
-}
+export const PLANES_AMOUNT_DEFAULT = 1000;
 
-interface DroneDeparture {
-  latitude: number;
-  longitude: number;
-  radius: number;
-  speed: number;
-}
-
-type PlaneState = [unknown, string, unknown, unknown, unknown, number, number, number, unknown, number, unknown, unknown, number];
-
-interface PlanesAmountFormData {
-  planesAmount: number;
-}
-
-type CoordinatesFormData = DroneDeparture
-
-type FormData = Partial<PlanesAmountFormData> | Partial<CoordinatesFormData>;
-
-export enum NavbarOptions {
-  ChangePlanesAmount,
-  AddCoordinates,
-  RetrievePastOperations,
-}
-
-interface PlaneMarkersProps {
+interface PlaneAndDronesLauncherMarkersProps {
   planes: Plane[];
   drones: DroneDeparture[];
+  closureTimes: number[];
+  vectorClosureTimes: number[];
 }
 
-const PlaneAndDronesLauncherMarkers = ({ planes, drones }: PlaneMarkersProps) => {
+interface Threat {
+  drone: DroneDeparture;
+  plane?: Plane;
+  closureTime?: number;
+  vectorClosureTime?: number;
+  minDistance?: number;
+  message?: string;
+}
+
+const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClosureTimes }: PlaneAndDronesLauncherMarkersProps) => {
   const createPlaneIcon = (heading: number) => {
     const iconMarkup = renderToStaticMarkup(
-      <Flight style={{ transform: `rotate(${heading}deg)`, color: 'black' }} />
+      <Flight style={{ transform: `rotate(${heading}deg)` }} />
     );
     return L.divIcon({
       html: iconMarkup,
@@ -62,7 +45,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones }: PlaneMarkersProps) =>
 
   const createRocketIcon = () => {
     const iconMarkup = renderToStaticMarkup(
-      <RocketLaunch style={{ fontSize: '32px', color: 'red' }} />
+      <RocketLaunch style={{ fontSize: '32px' }} />
     );
     return L.divIcon({
       html: iconMarkup,
@@ -74,131 +57,122 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones }: PlaneMarkersProps) =>
   return (
     <>
       {planes.map((plane, index) => (
-        <Marker
-          key={`plane-${index}`}
-          position={[plane.latitude, plane.longitude]}
-          icon={createPlaneIcon(plane.heading)}
-        >
-          <Popup>
-            Aircraft: {plane.callsign}<br />
-            Altitude: {plane.altitude} meters<br />
-            Speed: {plane.speed} knots
-          </Popup>
-        </Marker>
-      ))}
-      {drones.map((drone, index) => (
-        <React.Fragment key={`drone-${index}`}>
+        plane.latitude != null && plane.longitude != null && (
           <Marker
-            position={[drone.latitude, drone.longitude]}
-            icon={createRocketIcon()}
+            key={`plane-${index}`}
+            position={[plane.latitude, plane.longitude]}
+            icon={createPlaneIcon(plane.heading)}
           >
             <Popup>
-              Latitude: {drone.latitude}<br />
-              Longitude: {drone.longitude}<br />
-              Radius: {drone.radius} meters<br />
-              Speed: {drone.speed} knots
+              Aircraft: {plane.callsign}<br />
+              Altitude: {plane.altitude} meters<br />
+              Speed: {plane.velocity} knots<br />
+              Closure Time: {Math.round(closureTimes[index]) + " seconds" || 'Calculating...'}<br />
+              Vector Closure Time: {Math.round(vectorClosureTimes[index]) + " seconds" || 'Calculating...'}
             </Popup>
           </Marker>
-          <Circle
-            center={[drone.latitude, drone.longitude]}
-            radius={drone.radius}
-            pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2 }}
-          />
-        </React.Fragment>
+        )
+      ))}
+      {drones.map((drone, index) => (
+        drone.latitude != null && drone.longitude != null && (
+          <React.Fragment key={`drone-${index}`}>
+            <Marker
+              position={[drone.latitude, drone.longitude]}
+              icon={createRocketIcon()}
+            >
+              <Popup>
+                Latitude: {drone.latitude}<br />
+                Longitude: {drone.longitude}<br />
+                Radius: {drone.radius} meters<br />
+                Velocity: {drone.speed} knots
+              </Popup>
+            </Marker>
+            <Circle
+              center={[drone.latitude, drone.longitude]}
+              radius={drone.radius}
+              pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.2 }}
+            />
+          </React.Fragment>
+        )
       ))}
     </>
   );
 };
 
 export default function Home() {
-  const [planes, setPlanes] = useState<Plane[]>([]);
-  const [planesAmount, setPlanesAmount] = useState<number>(10);
-  const [dronesDeparture, setDronesDeparture] = useState<DroneDeparture[]>([]);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [dialogType, setDialogType] = useState<NavbarOptions | null>(null);
-  const [formData, setFormData] = useState<FormData>({});
+  const [threats, setThreats] = useState<Threat[]>([]);
+  const [planesAmount, setPlanesAmount] = useState<number>(PLANES_AMOUNT_DEFAULT);
 
-  const fetchPlaneData = async () => {
-    try {
-      const response = await axios.get('https://opensky-network.org/api/states/all', {
-        auth: {
-          username: 'alonitor',
-          password: 'alonitor007',
-        },
+  const [addCoordinatesDialogOpen, setAddCoordinatesDialogOpen] = useState<boolean>(false);
+  const [planesAmountDialogOpen, setPlanesAmountDialogOpen] = useState<boolean>(false);
+
+  const { mutate: fetchThreats } = useEvaluateThreatMutation({
+    onSuccess: (data) => {
+      threats.forEach((threat, index) => {
+        threat.plane = data.closestPlanes[index];
+        threat.closureTime = data.closureTimes[index];
+        threat.vectorClosureTime = data.vectorClosureTimes[index];
+        threat.minDistance = data.minDistances[index];
+        threat.message = data.messages[index];
       });
+      setThreats([...threats]);
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
 
-      const { states } = response.data;
-      const planeData = states.map((state: PlaneState) => ({
-        latitude: state[6],
-        longitude: state[5],
-        callsign: state[1],
-        altitude: state[7],
-        speed: state[9],
-        heading: state[10]
-      }))
-      .filter((plane: Plane) => plane.latitude && plane.longitude)
-      .slice(0, planesAmount);
-
-      setPlanes(planeData);
-    } catch (error) {
-      console.error('Error fetching plane data:', error);
+  const onNavbarOptionSelected = (option: NavbarOptions) => {
+    if (option === NavbarOptions.AddCoordinates) {
+      setAddCoordinatesDialogOpen(true);
+    } else if (option === NavbarOptions.ChangePlanesAmount) {
+      setPlanesAmountDialogOpen(true);
     }
+  };
+
+  const handleDialogClose = () => {
+    setAddCoordinatesDialogOpen(false);
+    setPlanesAmountDialogOpen(false);
+  };
+
+  const handlePlanesAmountDialogSubmit = (planesAmount: number) => {
+    setPlanesAmount(planesAmount);
+  };
+
+  const handleAddCoordinatesDialogSubmit = (droneDeparture: DroneDeparture) => {
+    setThreats([...threats, { drone: droneDeparture }]);
   };
 
   useEffect(() => {
-    fetchPlaneData();
-    const intervalId = setInterval(fetchPlaneData, 30000);
+    const interval = setInterval(() => {
+      fetchThreats({ dronesDeparture: threats.map(threat => threat.drone), planesAmount });
+    }, 5000);
 
-    return () => clearInterval(intervalId);
-  }, [planesAmount]);
-
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setFormData({});
-  };
-
-  const handleDialogSubmit = () => {
-    if (dialogType === NavbarOptions.AddCoordinates && formData as CoordinatesFormData) {
-      const { latitude, longitude, radius, speed } = formData as CoordinatesFormData;
-      setDronesDeparture([...dronesDeparture, { latitude, longitude, radius, speed }]);
-    } else if (dialogType === NavbarOptions.ChangePlanesAmount && formData as PlanesAmountFormData) {
-      const { planesAmount } = formData as PlanesAmountFormData;
-      setPlanesAmount(planesAmount);
-    }
-    handleDialogClose();
-  };
-
-  const onNavbarOptionSelected = (option: NavbarOptions) => {
-    setDialogType(option);
-    setDialogOpen(true);
-  };
+    return () => clearInterval(interval);
+  }, [threats, planesAmount]);
 
   return (
     <Box sx={{ height: '100vh', width: '100vw' }}>
       <Navbar onNavbarOptionSelected={onNavbarOptionSelected} />
       
       <PlanesAmountDialog
-        dialogOpen={dialogOpen && dialogType === NavbarOptions.ChangePlanesAmount}
-        formData={formData as PlanesAmountFormData}
-        setFormData={(data) => setFormData(data as PlanesAmountFormData)}
+        dialogOpen={planesAmountDialogOpen}
         handleDialogClose={handleDialogClose}
-        handleDialogSubmit={handleDialogSubmit}
+        handleDialogSubmit={handlePlanesAmountDialogSubmit}
       />
 
       <AddCoordinatesDialog
-        dialogOpen={dialogOpen && dialogType === NavbarOptions.AddCoordinates}
-        formData={formData as CoordinatesFormData}
-        setFormData={(data) => setFormData(data as CoordinatesFormData)}
+        dialogOpen={addCoordinatesDialogOpen}
         handleDialogClose={handleDialogClose}
-        handleDialogSubmit={handleDialogSubmit}
+        handleDialogSubmit={handleAddCoordinatesDialogSubmit}
       />
 
       <MapContainer 
         center={[0, 0]} 
         zoom={4}
         style={{ height: 'calc(100vh - 64px)', width: '100vw' }}
-        maxZoom={18}
-        minZoom={4}
+        maxZoom={20}
+        minZoom={3}
         maxBounds={[
           [-90, -180],
           [90, 180]
@@ -209,7 +183,12 @@ export default function Home() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        <PlaneAndDronesLauncherMarkers planes={planes} drones={dronesDeparture} />
+        <PlaneAndDronesLauncherMarkers
+          planes={threats.map(threat => threat.plane).filter((plane): plane is Plane => plane !== undefined && plane !== null)}
+          drones={threats.map(threat => threat.drone)}
+          closureTimes={threats.map(threat => threat.closureTime || 0)}
+          vectorClosureTimes={threats.map(threat => threat.vectorClosureTime || 0)}
+        />
       </MapContainer>
     </Box>
   );

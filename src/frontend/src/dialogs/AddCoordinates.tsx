@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
+import { DroneDeparture } from '../api/types';
 
 interface AddCoordinatesProps {
     dialogOpen: boolean;
-    formData: { latitude: number, longitude: number, radius: number, speed: number };
-    setFormData: (data: { latitude: number, longitude: number, radius: number, speed: number }) => void;
     handleDialogClose: () => void;
-    handleDialogSubmit: () => void;
+    handleDialogSubmit: (droneDeparture: DroneDeparture) => void;
 }
 
 export default function AddCoordinatesDialog(props: AddCoordinatesProps) {
   const [error, setError] = useState<string | null>(null);
+  const [droneDeparture, setDroneDeparture] = useState<Partial<DroneDeparture> | null>(null);
 
   const validateForm = () => {
-    const { latitude, longitude, radius, speed } = props.formData;
-    if (latitude === undefined || longitude === undefined || radius === undefined || speed === undefined) {
+    if (!droneDeparture || droneDeparture.latitude === undefined || droneDeparture.latitude === null ||
+      droneDeparture.longitude === undefined || droneDeparture.longitude === null || droneDeparture.radius === undefined ||
+      droneDeparture.radius === null || droneDeparture.speed === undefined || droneDeparture.speed === null
+    ) {
       setError('Please fill in all fields.');
       return false;
     }
@@ -22,9 +24,11 @@ export default function AddCoordinatesDialog(props: AddCoordinatesProps) {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (droneDeparture: DroneDeparture) => {
     if (validateForm()) {
-      props.handleDialogSubmit();
+      setDroneDeparture(null);
+      props.handleDialogSubmit(droneDeparture);
+      props.handleDialogClose();
     }
   };
 
@@ -32,51 +36,54 @@ export default function AddCoordinatesDialog(props: AddCoordinatesProps) {
     <Dialog open={props.dialogOpen} onClose={props.handleDialogClose}>
         <DialogTitle>Add Coordinates</DialogTitle>
         <DialogContent>
-            <TextField
-                label="Latitude"
-                type="number"
-                fullWidth
-                variant="outlined"
-                value={props.formData.latitude !== undefined ? props.formData.latitude : ''}
-                onChange={(e) => props.setFormData({ ...props.formData, latitude: parseFloat(e.target.value) })}
-                sx={{ mb: 2, mt: 2 }}
-            />
-            <TextField
-                label="Longitude"
-                type="number"
-                fullWidth
-                variant="outlined"
-                value={props.formData.longitude !== undefined ? props.formData.longitude : ''}
-                onChange={(e) => props.setFormData({ ...props.formData, longitude: parseFloat(e.target.value) })}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                label="Radius"
-                type="number"
-                fullWidth
-                variant="outlined"
-                value={props.formData.radius !== undefined ? props.formData.radius : ''}
-                onChange={(e) => props.setFormData({ ...props.formData, radius: parseFloat(e.target.value) })}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                label="Speed"
-                type="number"
-                fullWidth
-                variant="outlined"
-                value={props.formData.speed !== undefined ? props.formData.speed : ''}
-                onChange={(e) => props.setFormData({ ...props.formData, speed: parseFloat(e.target.value) })}
-                sx={{ mb: 2 }}
-            />
-            {error && (
-              <Typography color="error" sx={{ mb: 2 }}>
-                {error}
-              </Typography>
-            )}
+          <TextField
+            label="Latitude"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={droneDeparture?.latitude ?? ''}
+            onChange={(e) => setDroneDeparture(droneDeparture ? { ...droneDeparture, latitude: parseFloat(e.target.value) } : { latitude: parseFloat(e.target.value) })}
+            sx={{ mb: 2, mt: 2 }}
+          />
+          <TextField
+            label="Longitude"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={droneDeparture?.longitude ?? ''}
+            onChange={(e) => setDroneDeparture(droneDeparture ? { ...droneDeparture, longitude: parseFloat(e.target.value) } : { longitude: parseFloat(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Radius"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={droneDeparture?.radius ?? ''}
+            onChange={(e) => setDroneDeparture(droneDeparture ? { ...droneDeparture, radius: parseFloat(e.target.value) } : { radius: parseFloat(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Speed"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={droneDeparture?.speed ?? ''}
+            onChange={(e) => setDroneDeparture(droneDeparture ? { ...droneDeparture, speed: parseFloat(e.target.value) } : { speed: parseFloat(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+          {error && (
+            <Typography color="error" sx={{ mb: 2 }}>
+              {error}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-            <Button onClick={props.handleDialogClose}>Cancel</Button>
-            <Button onClick={handleSubmit}>Submit</Button>
+            <Button onClick={() => {
+              props.handleDialogClose();
+              setDroneDeparture(null);
+            }}>Cancel</Button>
+            <Button onClick={() => handleSubmit(droneDeparture as DroneDeparture)}>Submit</Button>
         </DialogActions>
     </Dialog>
   );
