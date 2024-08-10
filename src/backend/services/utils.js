@@ -15,26 +15,8 @@ function calculateDistance(latitude1, longitude1, latitude2, longitude2) {
     return earthRadiusKm * centralAngle * 1000;
 }
   
-function calculateVectorClosureTime(hostile, friendly) {
-    const dx = friendly.longitude - hostile.longitude;
-    const dy = friendly.latitude - hostile.latitude;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-  
-    const relativeSpeed = Math.sqrt(
-      Math.pow(friendly.speed * Math.cos(friendly.heading) - hostile.speed, 2) +
-      Math.pow(friendly.speed * Math.sin(friendly.heading), 2)
-    );
-  
-    if (relativeSpeed <= 0) {
-      throw new Error('Relative speed must be greater than zero');
-    }
-  
-    return distance / relativeSpeed;
-}
-  
 module.exports = {
     toRadians,
     calculateDistance,
-    calculateVectorClosureTime,
 };
   
