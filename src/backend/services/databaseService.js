@@ -33,22 +33,40 @@ class DatabaseService {
                     longitude,
                     speed,
                     radius,
-                    planeId: plane.id,
                 },
             });
         }
     
-        return droneDeparture;
+        let existingOperation = await prisma.operation.findFirst({
+            where: {
+                planeId: plane.id,
+                droneDepartureId: droneDeparture.id,
+            },
+        });
+    
+        if (existingOperation) {
+            return existingOperation;
+        }
+    
+        const newOperation = await prisma.operation.create({
+            data: {
+                planeId: plane.id,
+                droneDepartureId: droneDeparture.id,
+            },
+        });
+    
+        return newOperation;
     }
 
     async getSavedOperations() {
-        const planes = await prisma.plane.findMany({
+        const operations = await prisma.operation.findMany({
             include: {
-                droneDepartures: true,
+                plane: true,
+                droneDeparture: true,
             },
         });
-
-        return planes;
+    
+        return operations;
     }
 }
 

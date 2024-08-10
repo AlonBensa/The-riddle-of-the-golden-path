@@ -9,7 +9,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import Navbar from '../../components/Navbar';
 import PlanesAmountDialog from '../../dialogs/PlanesAmount';
 import AddCoordinatesDialog from '../../dialogs/AddCoordinates';
-import { Plane, NavbarOptions, DroneDeparture } from '../../api/types';
+import PastOperationsDialog from '../../dialogs/PastOperations';
+import { Plane, NavbarOptions, DroneDeparture, PastOperation } from '../../api/types';
 import { useEvaluateThreatMutation } from '../../api/planes';
 import { useSaveOperationMutation, useFetchSavedOperationsMutation } from '../../api/database';
 
@@ -106,6 +107,9 @@ export default function Home() {
   const [addCoordinatesDialogOpen, setAddCoordinatesDialogOpen] = useState<boolean>(false);
   const [planesAmountDialogOpen, setPlanesAmountDialogOpen] = useState<boolean>(false);
 
+  const [pastOperationsDialogOpen, setPastOperationsDialogOpen] = useState<boolean>(false);
+  const [pastOperations, setPastOperations] = useState<PastOperation[]>([]);
+
   const { mutate: fetchThreat } = useEvaluateThreatMutation({
     onSuccess: (data) => {
       const threatIndex = threats.findIndex(threat => threat.drone.uuid === data.droneDepartureUuid);
@@ -124,7 +128,8 @@ export default function Home() {
   const { mutate: saveOperation } = useSaveOperationMutation();
   const { mutate: fetchSavedOperations } = useFetchSavedOperationsMutation({
     onSuccess: (data) => {
-      console.log(data);
+      setPastOperations(data);
+      setPastOperationsDialogOpen(true);
     },
     onError: (error) => {
       console.error(error);
@@ -167,6 +172,7 @@ export default function Home() {
   const handleDialogClose = () => {
     setAddCoordinatesDialogOpen(false);
     setPlanesAmountDialogOpen(false);
+    setPastOperationsDialogOpen(false);
   };
 
   const handlePlanesAmountDialogSubmit = (planesAmount: number) => {
@@ -199,6 +205,12 @@ export default function Home() {
         dialogOpen={addCoordinatesDialogOpen}
         handleDialogClose={handleDialogClose}
         handleDialogSubmit={handleAddCoordinatesDialogSubmit}
+      />
+
+      <PastOperationsDialog
+        dialogOpen={pastOperationsDialogOpen}
+        handleDialogClose={handleDialogClose}
+        operations={pastOperations}
       />
 
       <MapContainer 

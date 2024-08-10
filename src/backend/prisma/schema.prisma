@@ -20,17 +20,26 @@ model Plane {
   origin_country String
   position_source Int
 
-  droneDepartures DroneDeparture[]
+  operations      Operation[]
 }
 
 model DroneDeparture {
   id        Int        @id @default(autoincrement())
-  uuid      String   @unique
+  uuid      String     @unique
   latitude  Float
   longitude Float
   radius    Float
   speed     Float
 
-  planeId   Int
-  plane     Plane       @relation(fields: [planeId], references: [id])
+  operations Operation[]
+}
+
+model Operation {
+  id               Int              @id @default(autoincrement())
+  planeId          Int
+  droneDepartureId Int
+  date             DateTime         @default(now())
+
+  plane            Plane            @relation(fields: [planeId], references: [id])
+  droneDeparture   DroneDeparture   @relation(fields: [droneDepartureId], references: [id])
 }

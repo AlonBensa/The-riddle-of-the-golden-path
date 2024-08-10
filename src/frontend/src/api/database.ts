@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useMutation, UseMutationOptions, UseMutationResult, useQueryClient } from '@tanstack/react-query';
-import { SaveOperationResponse, SaveOperationRequest, FetchSavedOperationsResponse, PastOperation } from './types';
+import { SaveOperationResponse, SaveOperationRequest, PastOperation } from './types';
 
 const BASE_URL = 'http://localhost:3000/api/database';
 

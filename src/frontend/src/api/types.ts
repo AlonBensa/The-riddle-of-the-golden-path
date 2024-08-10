@@ -93,15 +93,9 @@ export interface SaveOperationResponse {
 }
 
 export interface PastOperation {
-    id: number;
-    icao24: string;
-    callsign: string;
-    origin_country: string;
-    droneDepartures: DroneDeparture[];
-}
-
-export interface FetchSavedOperationsResponse {
-    operations: PastOperation[];
+    date: string;
+    droneDeparture: DroneDeparture;
+    plane: Plane;
 }
 
 export enum NavbarOptions {
