@@ -35,7 +35,7 @@ interface Threat {
 const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClosureTimes }: PlaneAndDronesLauncherMarkersProps) => {
   const createPlaneIcon = (heading: number) => {
     const iconMarkup = renderToStaticMarkup(
-      <Flight style={{ transform: `rotate(${heading}deg)` }} />
+      <Flight style={{ transform: `rotate(${heading}deg)`, color: 'black' }} />
     );
     return L.divIcon({
       html: iconMarkup,
@@ -46,7 +46,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClo
 
   const createRocketIcon = () => {
     const iconMarkup = renderToStaticMarkup(
-      <RocketLaunch style={{ fontSize: '32px' }} />
+      <RocketLaunch style={{ fontSize: '32px', color: 'black' }} />
     );
     return L.divIcon({
       html: iconMarkup,
