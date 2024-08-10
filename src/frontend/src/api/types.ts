@@ -8,7 +8,7 @@ export interface Plane {
     latitude: number;
     altitude: number;
     on_ground: boolean;
-    velocity: number;
+    speed: number;
     heading: number;
     vertical_rate: number;
     sensors: number[] | null;
@@ -19,6 +19,7 @@ export interface Plane {
 }
 
 export interface DroneDeparture {
+    uuid: string;
     latitude: number;
     longitude: number;
     radius: number;
@@ -26,19 +27,27 @@ export interface DroneDeparture {
 }
 
 export interface ClosestAircraftRequest {
-    dronesDeparture: DroneDeparture[];
+    droneDeparture: DroneDeparture;
     planesAmount?: number;
 }
   
 export interface ClosestAircraftResponse {
-    closestPlanes: (Plane | null)[];
-    minDistances: (number | null)[];
-    messages: (string | null)[];
+    closestPlane: Plane | null;
+    minDistance: number | null;
+    messages: string | null;
 }
   
 export interface ClosureTimeRequest {
-    distance: number;
-    speed: number;
+    hostile: {
+        latitude: number;
+        longitude: number;
+        speed: number;
+    };
+    friendly: {
+        latitude: number;
+        longitude: number;
+        speed: number;
+    };
 }
   
 export interface ClosureTimeResponse {
@@ -48,41 +57,51 @@ export interface ClosureTimeResponse {
 export interface EvaluateThreatRequest extends ClosestAircraftRequest {}
 
 export interface EvaluateThreatResponse {
-    closestPlanes: Plane[];
-    minDistances: number[];
-    messages: string[];
-    closureTimes: number[];
-    vectorClosureTimes: number[];
+    closestPlane: Plane;
+    minDistance: number;
+    message: string;
+    closureTime: number;
+    vectorClosureTime: number;
+    droneDepartureUuid: string;
 }
   
 export interface VectorClosureTimeRequest {
     hostile: {
         latitude: number;
         longitude: number;
-        velocity: number;
+        speed: number;
     };
     friendly: {
         latitude: number;
         longitude: number;
-        velocity: number;
+        speed: number;
         heading: number;
     };
 }
 
-export interface Operation {
+export interface SaveOperationRequest {
+    uuid: string;
     latitude: number;
     longitude: number;
     speed: number;
     radius: number;
-    closestPlane: any;
+    closestPlane: Plane;
 }
-  
+
 export interface SaveOperationResponse {
     message: string;
 }
-  
+
+export interface PastOperation {
+    id: number;
+    icao24: string;
+    callsign: string;
+    origin_country: string;
+    droneDepartures: DroneDeparture[];
+}
+
 export interface FetchSavedOperationsResponse {
-    operations: Operation[];
+    operations: PastOperation[];
 }
 
 export enum NavbarOptions {

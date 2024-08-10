@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography } from '@mui/material';
 import { DroneDeparture } from '../api/types';
+import {v4 as uuidv4} from 'uuid';
 
 interface AddCoordinatesProps {
-    dialogOpen: boolean;
-    handleDialogClose: () => void;
-    handleDialogSubmit: (droneDeparture: DroneDeparture) => void;
+  dialogOpen: boolean;
+  handleDialogClose: () => void;
+  handleDialogSubmit: (droneDeparture: DroneDeparture) => void;
 }
 
 export default function AddCoordinatesDialog(props: AddCoordinatesProps) {
@@ -27,6 +28,7 @@ export default function AddCoordinatesDialog(props: AddCoordinatesProps) {
   const handleSubmit = (droneDeparture: DroneDeparture) => {
     if (validateForm()) {
       setDroneDeparture(null);
+      droneDeparture.uuid = uuidv4();
       props.handleDialogSubmit(droneDeparture);
       props.handleDialogClose();
     }
