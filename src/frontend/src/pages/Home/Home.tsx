@@ -11,9 +11,9 @@ import PlanesAmountDialog from '../../dialogs/PlanesAmount';
 import AddCoordinatesDialog from '../../dialogs/AddCoordinates';
 import { Plane, NavbarOptions, DroneDeparture } from '../../api/types';
 import { useEvaluateThreatMutation } from '../../api/planes';
-import { useSaveOperationMutation, useFetchSavedOperationsQuery } from '../../api/database';
+import { useSaveOperationMutation, useFetchSavedOperationsMutation } from '../../api/database';
 
-export const PLANES_AMOUNT_DEFAULT = 1000;
+export const PLANES_AMOUNT_DEFAULT = 10000;
 
 interface PlaneAndDronesLauncherMarkersProps {
   planes: Plane[];
@@ -66,7 +66,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClo
             <Popup>
               Aircraft: {plane.callsign}<br />
               Altitude: {plane.altitude} meters<br />
-              Speed: {plane.velocity} knots<br />
+              Speed: {plane.speed} knots<br />
               Closure Time: {Math.round(closureTimes[index]) + " seconds" || 'Calculating...'}<br />
               Vector Closure Time: {Math.round(vectorClosureTimes[index]) + " seconds" || 'Calculating...'}
             </Popup>
@@ -106,15 +106,14 @@ export default function Home() {
   const [addCoordinatesDialogOpen, setAddCoordinatesDialogOpen] = useState<boolean>(false);
   const [planesAmountDialogOpen, setPlanesAmountDialogOpen] = useState<boolean>(false);
 
-  const { mutate: fetchThreats } = useEvaluateThreatMutation({
+  const { mutate: fetchThreat } = useEvaluateThreatMutation({
     onSuccess: (data) => {
-      threats.forEach((threat, index) => {
-        threat.plane = data.closestPlanes[index];
-        threat.closureTime = data.closureTimes[index];
-        threat.vectorClosureTime = data.vectorClosureTimes[index];
-        threat.minDistance = data.minDistances[index];
-        threat.message = data.messages[index];
-      });
+      const threatIndex = threats.findIndex(threat => threat.drone.uuid === data.droneDepartureUuid);
+      threats[threatIndex].plane = data.closestPlane;
+      threats[threatIndex].closureTime = data.closureTime;
+      threats[threatIndex].vectorClosureTime = data.vectorClosureTime;
+      threats[threatIndex].minDistance = data.minDistance;
+      threats[threatIndex].message = data.message;
       setThreats([...threats]);
     },
     onError: (error) => {
@@ -122,11 +121,46 @@ export default function Home() {
     },
   });
 
+  const { mutate: saveOperation } = useSaveOperationMutation();
+  const { mutate: fetchSavedOperations } = useFetchSavedOperationsMutation({
+    onSuccess: (data) => {
+      console.log(data);
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
+
+  const saveOperations = async () => {
+    threats.forEach(threat => {
+      if (threat.plane) {
+        saveOperation({
+          uuid: threat.drone.uuid,
+          latitude: threat.drone.latitude,
+          longitude: threat.drone.longitude,
+          speed: threat.drone.speed,
+          radius: threat.drone.radius,
+          closestPlane: threat.plane,
+        });
+      }
+    });
+  };
+
+  const fetchThreats = async () => {
+    threats.forEach(threat => {
+      fetchThreat({ droneDeparture: threat.drone });
+    });
+  }
+
   const onNavbarOptionSelected = (option: NavbarOptions) => {
     if (option === NavbarOptions.AddCoordinates) {
       setAddCoordinatesDialogOpen(true);
     } else if (option === NavbarOptions.ChangePlanesAmount) {
       setPlanesAmountDialogOpen(true);
+    } else if (option === NavbarOptions.SaveCurrentThreats) {
+      saveOperations();
+    } else if (option === NavbarOptions.RetrievePastOperations) {
+      fetchSavedOperations();
     }
   };
 
@@ -145,7 +179,7 @@ export default function Home() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchThreats({ dronesDeparture: threats.map(threat => threat.drone), planesAmount });
+      fetchThreats();
     }, 5000);
 
     return () => clearInterval(interval);

@@ -21,8 +21,8 @@ function calculateVectorClosureTime(hostile, friendly) {
     const distance = Math.sqrt(dx * dx + dy * dy);
   
     const relativeSpeed = Math.sqrt(
-      Math.pow(friendly.velocity * Math.cos(friendly.heading) - hostile.velocity, 2) +
-      Math.pow(friendly.velocity * Math.sin(friendly.heading), 2)
+      Math.pow(friendly.speed * Math.cos(friendly.heading) - hostile.speed, 2) +
+      Math.pow(friendly.speed * Math.sin(friendly.heading), 2)
     );
   
     if (relativeSpeed <= 0) {

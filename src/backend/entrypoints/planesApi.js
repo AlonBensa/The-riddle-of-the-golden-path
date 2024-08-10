@@ -2,16 +2,17 @@ const express = require('express');
 const router = express.Router();
 const PlanesService = require('../services/planesService');
 
+
 const planesService = new PlanesService();
 
 // Service to find the closest aircraft
 router.post('/closest-aircraft', async (req, res) => {
-    const { dronesDeparture, planesAmount } = req.body;
+    const { droneDeparture, planesAmount } = req.body;
 
     try {
         const planes = await planesService.getPlanes(planesAmount);
-        const results = planesService.findClosestPlanes(dronesDeparture, planes);
-        res.json(results);
+        const result = planesService.findClosestPlane(droneDeparture, planes);
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -19,36 +20,13 @@ router.post('/closest-aircraft', async (req, res) => {
 
 // Service to calculate closure time
 router.post('/closure-time', (req, res) => {
-    const { distance, speed } = req.body;
+    const { hostile, friendly } = req.body;
 
     try {
-        const closureTime = planesService.calculateClosureTime(distance, speed);
+        const closureTime = planesService.calculateClosureTime(hostile, friendly);
         res.json({ closureTime });
     } catch (error) {
         res.status(400).json({ error: error.message });
-    }
-});
-
-// Aggregate service to evaluate threat
-router.post('/evaluate-threats', async (req, res) => {
-    const { dronesDeparture, planesAmount } = req.body;
-
-    try {
-        const planes = await planesService.getPlanes(planesAmount);
-        const { closestPlanes, minDistances, messages } = planesService.findClosestPlanes(dronesDeparture, planes);
-
-        const closureTimes = [];
-        const vectorClosureTimes = [];
-
-        dronesDeparture.forEach((departure, index) => {
-            const { latitude, longitude, radius, speed } = departure;
-            closureTimes.push(planesService.calculateClosureTime(minDistances[index], speed));
-            // vectorClosureTimes.push(planesService.calculateVectorClosureTime(closestPlanes[index], departure, speed));
-        });
-
-        res.json({ closestPlanes, minDistances, closureTimes, vectorClosureTimes, messages });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
     }
 });
 
@@ -61,6 +39,28 @@ router.post('/vector-closure-time', (req, res) => {
         res.json({ closureTime });
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+});
+
+// Aggregate service to evaluate threat
+router.post('/evaluate-threats', async (req, res) => {
+    const { droneDeparture, planesAmount } = req.body;
+
+    try {
+        const planes = await planesService.getPlanes(planesAmount);
+        const { closestPlane, minDistance, message } = planesService.findClosestPlane(droneDeparture, planes);
+        
+        if (!closestPlane) {
+            res.json({ closestPlane: null, minDistance: null, closureTime: null, vectorClosureTime: null, message, droneDepartureUuid: droneDeparture.uuid });
+            return;
+        }
+
+        const closureTime = planesService.calculateClosureTime(droneDeparture, closestPlane);
+        // const vectorClosureTime = planesService.calculateVectorClosureTime(droneDeparture, closestPlane);
+
+        res.json({ closestPlane, minDistance, closureTime, vectorClosureTime: 0, message, droneDepartureUuid: droneDeparture.uuid });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
