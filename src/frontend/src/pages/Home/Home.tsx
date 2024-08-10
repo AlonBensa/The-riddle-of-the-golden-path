@@ -67,7 +67,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClo
             <Popup>
               Aircraft: {plane.callsign}<br />
               Altitude: {plane.altitude} meters<br />
-              Speed: {plane.speed} knots<br />
+              Speed: {plane.speed} m/s<br />
               Closure Time: {Math.round(closureTimes[index]) + " seconds" || 'Calculating...'}<br />
               Vector Closure Time: {Math.round(vectorClosureTimes[index]) + " seconds" || 'Calculating...'}
             </Popup>
@@ -85,7 +85,7 @@ const PlaneAndDronesLauncherMarkers = ({ planes, drones, closureTimes, vectorClo
                 Latitude: {drone.latitude}<br />
                 Longitude: {drone.longitude}<br />
                 Radius: {drone.radius} meters<br />
-                Velocity: {drone.speed} knots
+                Velocity: {drone.speed} m/s
               </Popup>
             </Marker>
             <Circle
@@ -186,7 +186,7 @@ export default function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       fetchThreats();
-    }, 5000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [threats, planesAmount]);

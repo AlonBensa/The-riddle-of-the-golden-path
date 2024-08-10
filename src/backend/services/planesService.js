@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { calculateDistance, calculateVectorClosureTime } = require('./utils');
+const { calculateDistance, toRadians } = require('./utils');
 require('dotenv').config();
 
 class PlanesService {
@@ -76,8 +76,65 @@ class PlanesService {
         return closureTime;
     }
 
-    calculateVectorClosureTime(hostile, friendly, hostileSpeed) {
-        return calculateVectorClosureTime(hostile, friendly);
+    calculateVectorClosureTime(hostile, friendly) {
+        const DEG_TO_RAD = Math.PI / 180;
+    
+        // Convert speed and heading to velocity components
+        function speedToVelocity(speed, heading) {
+            const headingRad = heading * DEG_TO_RAD;
+            return {
+                x: speed * Math.cos(headingRad),
+                y: speed * Math.sin(headingRad)
+            };
+        }
+    
+        // Convert latitude and longitude to Cartesian coordinates
+        function latLonToCartesian(lat, lon) {
+            const R = 6371e3; // Radius of Earth in meters
+            const latRad = lat * DEG_TO_RAD;
+            const lonRad = lon * DEG_TO_RAD;
+            return {
+                x: R * Math.cos(latRad) * Math.cos(lonRad),
+                y: R * Math.cos(latRad) * Math.sin(lonRad)
+            };
+        }
+    
+        const { latitude: latH, longitude: lonH, speed: speedH } = hostile;
+        const { latitude: latF, longitude: lonF, speed: speedF, heading: headingF } = friendly;
+    
+        // Convert to Cartesian coordinates
+        const posH = latLonToCartesian(latH, lonH);
+        const posF = latLonToCartesian(latF, lonF);
+    
+        // Calculate velocity vectors
+        const velH = { x: speedH, y: 0 }; // Assuming hostile moves in the direction of longitude
+        const velF = speedToVelocity(speedF, headingF);
+    
+        // Calculate the relative position and velocity
+        const pRel = {
+            x: posH.x - posF.x,
+            y: posH.y - posF.y
+        };
+        const vRel = {
+            x: velH.x - velF.x,
+            y: velH.y - velF.y
+        };
+    
+        // Calculate the magnitude squared
+        const vRelMagSquared = vRel.x * vRel.x + vRel.y * vRel.y;
+    
+        // Handle case when relative velocity is zero or very small
+        if (vRelMagSquared === 0) {
+            return Infinity; // They are moving parallel or stationary relative to each other
+        }
+    
+        // Calculate the distance to closure
+        const distanceToClosure = Math.sqrt(pRel.x * pRel.x + pRel.y * pRel.y);
+    
+        // Calculate closure time
+        const closureTime = distanceToClosure / Math.sqrt(vRelMagSquared);
+    
+        return closureTime >= 0 ? closureTime : Infinity; 
     }
 }
 

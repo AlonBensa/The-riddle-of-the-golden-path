@@ -56,9 +56,9 @@ router.post('/evaluate-threats', async (req, res) => {
         }
 
         const closureTime = planesService.calculateClosureTime(droneDeparture, closestPlane);
-        // const vectorClosureTime = planesService.calculateVectorClosureTime(droneDeparture, closestPlane);
+        const vectorClosureTime = planesService.calculateVectorClosureTime(droneDeparture, closestPlane);
 
-        res.json({ closestPlane, minDistance, closureTime, vectorClosureTime: 0, message, droneDepartureUuid: droneDeparture.uuid });
+        res.json({ closestPlane, minDistance, closureTime, vectorClosureTime, message, droneDepartureUuid: droneDeparture.uuid });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
